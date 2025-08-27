@@ -7,4 +7,7 @@ DATASET_DIR = r"C:\Users\wangshuo523\Desktop\test\datasets"
 MODEL_DIR = r"C:\Users\wangshuo523\Desktop\test"
 
 # 默认训练轮数
-NUM_EPOCHS = 20
+NUM_EPOCHS = 100
+
+# 早停法参数: 容忍验证集 Loss 连续多少次未下降
+PATIENCE = 5

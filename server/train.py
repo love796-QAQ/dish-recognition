@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader
-from config import DATASET_DIR, MODEL_DIR, NUM_EPOCHS
+from config import DATASET_DIR, MODEL_DIR, NUM_EPOCHS, PATIENCE
 
 def train_model():
     train_dir = os.path.join(DATASET_DIR, "train")
@@ -48,8 +48,13 @@ def train_model():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # 训练
+    best_val_loss = float("inf")
+    best_epoch = 0
+    patience_counter = 0
+    stopped_early = False
+
     for epoch in range(NUM_EPOCHS):
+        # ====== 训练 ======
         model.train()
         running_loss, running_corrects = 0.0, 0
         for inputs, labels in train_loader:
@@ -62,13 +67,48 @@ def train_model():
             _, preds = torch.max(outputs, 1)
             running_loss += loss.item() * inputs.size(0)
             running_corrects += torch.sum(preds == labels.data)
-        epoch_loss = running_loss / len(train_dataset)
-        epoch_acc = running_corrects.double() / len(train_dataset)
-        print(f"Epoch {epoch+1}/{NUM_EPOCHS} | Loss: {epoch_loss:.4f} | Acc: {epoch_acc:.4f}")
+        train_loss = running_loss / len(train_dataset)
+        train_acc = running_corrects.double() / len(train_dataset)
 
-    # 保存 pth
-    pth_path = os.path.join(MODEL_DIR, "mobilenet_classifier.pth")
-    torch.save(model.state_dict(), pth_path)
-    print(f"✅ 模型已保存到 {pth_path}")
+        # ====== 验证 ======
+        model.eval()
+        val_loss, val_corrects = 0.0, 0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                _, preds = torch.max(outputs, 1)
+                val_loss += loss.item() * inputs.size(0)
+                val_corrects += torch.sum(preds == labels.data)
+        val_loss = val_loss / len(val_dataset)
+        val_acc = val_corrects.double() / len(val_dataset)
+
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS} "
+              f"| Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f} "
+              f"| Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f}")
+
+        # ====== 保存 & 早停 ======
+        if val_loss < best_val_loss:  # ✅ 用 Val Loss 判断
+            best_val_loss = val_loss
+            best_epoch = epoch + 1
+            patience_counter = 0
+            # 保存最佳模型
+            pth_path = os.path.join(MODEL_DIR, "mobilenet_classifier.pth")
+            torch.save(model.state_dict(), pth_path)
+            print(f"💾 新最佳模型已保存 (Val Loss={best_val_loss:.4f} @ Epoch {best_epoch})")
+        else:
+            patience_counter += 1
+            if patience_counter >= PATIENCE:
+                print(f"⏹️ 验证集 Loss 连续 {PATIENCE} 次未下降，提前停止训练。")
+                stopped_early = True
+                break
+
+    # ====== 训练结束提示 ======
+    if stopped_early:
+        print(f"🏆 最佳模型出现在 Epoch {best_epoch} (Val Loss={best_val_loss:.4f})")
+    else:
+        print(f"⚠️ 已达到最大轮数 {NUM_EPOCHS}，最佳模型在 Epoch {best_epoch} (Val Loss={best_val_loss:.4f})")
+        print("👉 可以考虑增大 NUM_EPOCHS 或调整 PATIENCE 以获得更高精度。")
 
     return model, len(train_dataset.classes)
