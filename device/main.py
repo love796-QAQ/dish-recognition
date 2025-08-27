@@ -1,19 +1,42 @@
-from templates import add_template, save_templates, load_templates
-from scale import add_dish
+import os
+from templates import load_templates, template_db
+from recognize import recognize
 
-# 示例流程
+def main():
+    print("=== 🍲 菜品识别系统 ===")
+
+    load_templates()
+    if not template_db:
+        print("⚠️ 没有加载到任何模板，请确认 TEMPLATE_DIR 下有子文件夹和图片")
+        return
+
+    while True:
+        print("\n操作菜单：")
+        print("1. 输入图片绝对路径进行识别")
+        print("2. 查看已加载的模板")
+        print("3. 退出")
+
+        choice = input("请输入操作编号: ").strip()
+
+        if choice == "1":
+            img_path = input("请输入图片绝对路径: ").strip().strip('"').strip("'")
+            if not os.path.exists(img_path):
+                print(f"❌ 找不到文件: {img_path}")
+                continue
+            dish, score = recognize(img_path)
+            print(f"✅ 识别结果: {dish} | 相似度={score:.3f}")
+
+        elif choice == "2":
+            if not template_db:
+                print("📂 暂无模板")
+            else:
+                print("📊 已加载的模板：")
+                for dish, embs in template_db.items():
+                    print(f"- {dish} (图片数量: {len(embs)})")
+
+        elif choice == "3":
+            print("👋 程序已退出")
+            break
+
 if __name__ == "__main__":
-    # 加载历史模板（可选）
-    try:
-        load_templates()
-    except:
-        pass
-
-    # 新增模板
-    add_template("宫保鸡丁", "gongbao1.jpg")
-    add_template("鱼香肉丝", "yuxiang1.jpg")
-    save_templates()
-
-    # 识别 & 称重
-    print(add_dish("gongbao_test.jpg", 200))
-    print(add_dish("yuxiang_test.jpg", 350))
+    main()

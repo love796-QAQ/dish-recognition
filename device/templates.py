@@ -1,19 +1,26 @@
-import numpy as np
-import pickle
+import os
 from model import get_embedding
+from config import TEMPLATE_DIR
 
 template_db = {}
 
-def add_template(dish_name, img_path):
-    emb = get_embedding(img_path)
-    template_db.setdefault(dish_name, []).append(emb)
-    print(f"模板已添加: {dish_name}, 数量={len(template_db[dish_name])}")
+def load_templates():
+    base_dir = TEMPLATE_DIR
+    if not os.path.exists(base_dir):
+        print(f"❌ 模板目录不存在: {base_dir}")
+        return {}
 
-def save_templates(path="templates.pkl"):
-    with open(path, "wb") as f:
-        pickle.dump(template_db, f)
+    for dish_folder in os.listdir(base_dir):
+        dish_path = os.path.join(base_dir, dish_folder)
+        if not os.path.isdir(dish_path):
+            continue
+        dish_name = dish_folder
+        template_db[dish_name] = []
+        for f in os.listdir(dish_path):
+            if f.lower().endswith((".jpg", ".jpeg", ".png")):
+                img_path = os.path.join(dish_path, f)
+                emb = get_embedding(img_path)
+                template_db[dish_name].append(emb)
+        print(f"已录入模板: {dish_name}, 图片数量={len(template_db[dish_name])}")
 
-def load_templates(path="templates.pkl"):
-    global template_db
-    with open(path, "rb") as f:
-        template_db = pickle.load(f)
+    return template_db

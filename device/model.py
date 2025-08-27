@@ -1,14 +1,21 @@
+import os
 import onnxruntime as ort
 import numpy as np
 from PIL import Image
 from torchvision import transforms
+from config import MODEL_PATH
 
-session = ort.InferenceSession("mobilenet_feature_extractor.onnx")
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError(f"❌ 模型文件不存在: {MODEL_PATH}")
+
+print("✅ 正在加载模型:", MODEL_PATH)
+session = ort.InferenceSession(MODEL_PATH)
 
 transform = transforms.Compose([
-    transforms.Resize((224,224)),
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
+    transforms.Normalize([0.485, 0.456, 0.406],
+                         [0.229, 0.224, 0.225])
 ])
 
 def get_embedding(img_path):
