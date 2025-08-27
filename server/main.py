@@ -1,5 +1,9 @@
+import sys
+sys.dont_write_bytecode = True  # 禁止生成 __pycache__
+
 import os
 import torch
+import torch.nn as nn
 from train import train_model
 from torchvision import models
 from config import MODEL_DIR
@@ -13,18 +17,22 @@ def export_to_onnx(model, num_classes):
     base_model.load_state_dict(model.state_dict())
     base_model.eval()
 
+    feature_extractor = torch.nn.Sequential(
+        base_model.features,
+        nn.AdaptiveAvgPool2d((1, 1)),
+        torch.nn.Flatten(1)
+    )
+
     dummy_input = torch.randn(1, 3, 224, 224)
-    torch.onnx.export(base_model, dummy_input, onnx_path,
+    torch.onnx.export(feature_extractor, dummy_input, onnx_path,
                       input_names=["input"], output_names=["output"],
                       dynamic_axes={"input": {0: "batch"}, "output": {0: "batch"}})
-    print(f"✅ 模型已转换为 ONNX: {onnx_path}")
+
+    print(f"✅ 模型已转换为 ONNX (1280维特征向量): {onnx_path}")
     return onnx_path
 
 if __name__ == "__main__":
-    # 训练并保存 .pth
     model, num_classes = train_model()
-
-    # 导出 .onnx
     onnx_file = export_to_onnx(model, num_classes=num_classes)
 
     print("✅ 训练与导出流程完成")

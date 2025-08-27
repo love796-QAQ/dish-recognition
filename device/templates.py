@@ -19,7 +19,7 @@ def load_templates():
         for f in os.listdir(dish_path):
             if f.lower().endswith((".jpg", ".jpeg", ".png")):
                 img_path = os.path.join(dish_path, f)
-                emb = get_embedding(img_path)
+                emb = get_embedding(img_path).flatten()
                 template_db[dish_name].append(emb)
         print(f"已录入模板: {dish_name}, 图片数量={len(template_db[dish_name])}")
 

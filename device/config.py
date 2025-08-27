@@ -5,3 +5,6 @@ MODEL_PATH = r"C:\Users\wangshuo523\Desktop\test\mobilenet_feature_extractor.onn
 
 # 模板目录路径 (一个菜品一个文件夹)
 TEMPLATE_DIR = r"C:\Users\wangshuo523\Desktop\test\templates"
+
+# 相似度阈值（低于该值认为“不匹配”）
+SIMILARITY_THRESHOLD = 0

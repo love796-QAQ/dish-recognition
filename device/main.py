@@ -1,3 +1,6 @@
+import sys
+sys.dont_write_bytecode = True  # 禁止生成 __pycache__
+
 import os
 from templates import load_templates, template_db
 from recognize import recognize
@@ -23,8 +26,15 @@ def main():
             if not os.path.exists(img_path):
                 print(f"❌ 找不到文件: {img_path}")
                 continue
-            dish, score = recognize(img_path)
-            print(f"✅ 识别结果: {dish} | 相似度={score:.3f}")
+
+            results = recognize(img_path, top_k=3)
+
+            if not results:
+                print("⚠️ 未识别到已知菜品（相似度过低）")
+            else:
+                print("✅ 识别结果（Top-3 相似度）：")
+                for rank, (dish, score) in enumerate(results, start=1):
+                    print(f" {rank}. {dish} | 相似度={score:.3f}")
 
         elif choice == "2":
             if not template_db:

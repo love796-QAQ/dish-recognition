@@ -22,4 +22,6 @@ def get_embedding(img_path):
     img = Image.open(img_path).convert("RGB")
     x = transform(img).unsqueeze(0).numpy()
     emb = session.run(None, {"input": x})[0]
+    # 转为 1D 向量并归一化
+    emb = emb.flatten()
     return emb / np.linalg.norm(emb)
